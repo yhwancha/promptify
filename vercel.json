@@ -1,9 +1,14 @@
 {
   "buildCommand": "cd frontend && pnpm build",
   "outputDirectory": "frontend/.next",
-  "installCommand": "cd frontend && pnpm install",
+  "installCommand": "cd frontend && pnpm install --frozen-lockfile",
   "framework": "nextjs",
   "env": {
     "NEXT_PUBLIC_API_URL": "https://your-backend-app.onrender.com"
+  },
+  "functions": {
+    "frontend/app/**/*.ts": {
+      "runtime": "nodejs20.x"
+    }
   }
 } 
