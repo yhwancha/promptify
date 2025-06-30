@@ -6,7 +6,10 @@
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "type-check": "tsc --noEmit",
+    "test": "echo 'No tests yet' && exit 0",
+    "ci": "pnpm lint && pnpm type-check && pnpm build"
   },
   "dependencies": {
     "@ai-sdk/openai": "latest",
