@@ -10,9 +10,7 @@ const nextConfig = {
     unoptimized: true,
   },
   // Vercel deployment optimization
-  experimental: {
-    serverComponentsExternalPackages: [],
-  },
+  serverExternalPackages: [],
 }
 
 export default nextConfig
