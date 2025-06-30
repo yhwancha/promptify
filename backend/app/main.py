@@ -13,6 +13,8 @@ load_dotenv()
 # Create database tables
 create_tables()
 
+PORT = os.getenv("PORT", 8000)
+
 app = FastAPI(
     title="Promptify API",
     description="Backend API for Promptify application",
@@ -46,6 +48,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app", 
         host="0.0.0.0", 
-        port=8000, 
+        port=PORT, 
         reload=True
     ) 
