@@ -179,12 +179,6 @@ export default function ResultsPage() {
         </div>
 
         <div className="text-center mb-8">
-          <Link href="/" className="inline-block mb-4">
-            <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Home
-            </Button>
-          </Link>
           <h1 className="text-3xl font-bold gradient-text">Analysis Results</h1>
         </div>
 

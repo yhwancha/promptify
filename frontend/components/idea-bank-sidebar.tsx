@@ -3,13 +3,12 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Lightbulb, Calendar, Tag, Search, MessageCircle, Send, Trash2, Plus } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Lightbulb, Calendar, Search, MessageCircle, Send, Trash2, CheckCircle } from "lucide-react"
 import type { SavedIdea, IdeaComment } from "@/types"
 
 export function IdeaBankSidebar() {
@@ -20,6 +19,7 @@ export function IdeaBankSidebar() {
   const [selectedIdea, setSelectedIdea] = useState<SavedIdea | null>(null)
   const [newComment, setNewComment] = useState("")
   const [isCommentDialogOpen, setIsCommentDialogOpen] = useState(false)
+  const [commentAdded, setCommentAdded] = useState(false)
 
   const fetchIdeas = async () => {
     if (isLoading) return
@@ -61,14 +61,27 @@ export function IdeaBankSidebar() {
       })
 
       if (response.ok) {
+        const newCommentData = await response.json()
         setNewComment("")
-        await fetchIdeas() // Refresh to get updated comments
-        // Update selected idea if it's the one we commented on
+        setCommentAdded(true)
+        setTimeout(() => setCommentAdded(false), 3000)
+        
+        // Update the selected idea immediately with the new comment
         if (selectedIdea?.id === ideaId) {
-          const updatedIdea = ideas.find(idea => idea.id === ideaId)
-          if (updatedIdea) {
-            setSelectedIdea(updatedIdea)
+          const updatedIdea = {
+            ...selectedIdea,
+            comments: [...(selectedIdea.comments || []), newCommentData]
           }
+          setSelectedIdea(updatedIdea)
+          
+          // Also update the ideas list
+          setIdeas(prevIdeas => 
+            prevIdeas.map(idea => 
+              idea.id === ideaId 
+                ? { ...idea, comments: [...(idea.comments || []), newCommentData] }
+                : idea
+            )
+          )
         }
       }
     } catch (error) {
@@ -83,13 +96,22 @@ export function IdeaBankSidebar() {
       })
 
       if (response.ok) {
-        await fetchIdeas() // Refresh to get updated comments
-        // Update selected idea
+        // Update selected idea immediately by removing the comment
         if (selectedIdea) {
-          const updatedIdea = ideas.find(idea => idea.id === selectedIdea.id)
-          if (updatedIdea) {
-            setSelectedIdea(updatedIdea)
+          const updatedIdea = {
+            ...selectedIdea,
+            comments: selectedIdea.comments?.filter(comment => comment.id !== commentId) || []
           }
+          setSelectedIdea(updatedIdea)
+          
+          // Also update the ideas list
+          setIdeas(prevIdeas => 
+            prevIdeas.map(idea => 
+              idea.id === selectedIdea.id 
+                ? { ...idea, comments: idea.comments?.filter(comment => comment.id !== commentId) || [] }
+                : idea
+            )
+          )
         }
       }
     } catch (error) {
@@ -108,8 +130,7 @@ export function IdeaBankSidebar() {
 
   const filteredIdeas = ideas.filter(idea =>
     idea.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    idea.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    idea.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+    idea.description.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const handleOpenChange = (open: boolean) => {
@@ -122,12 +143,14 @@ export function IdeaBankSidebar() {
   const openCommentDialog = (idea: SavedIdea) => {
     setSelectedIdea(idea)
     setIsCommentDialogOpen(true)
+    setCommentAdded(false)
   }
 
   const closeCommentDialog = () => {
     setIsCommentDialogOpen(false)
     setSelectedIdea(null)
     setNewComment("")
+    setCommentAdded(false)
   }
 
   return (
@@ -150,7 +173,7 @@ export function IdeaBankSidebar() {
               Idea Bank
             </SheetTitle>
             <SheetDescription className="text-base">
-              Browse your saved ideas and manage comments
+              Browse your saved ideas
             </SheetDescription>
           </SheetHeader>
           
@@ -195,11 +218,6 @@ export function IdeaBankSidebar() {
                                 <Calendar className="h-3 w-3" />
                                 {formatDate(idea.created_at)}
                               </span>
-                              {idea.category && (
-                                <Badge variant="outline" className="text-xs px-2 py-0.5">
-                                  {idea.category}
-                                </Badge>
-                              )}
                             </CardDescription>
                           </div>
                           <Button
@@ -214,22 +232,9 @@ export function IdeaBankSidebar() {
                         </div>
                       </CardHeader>
                       <CardContent className="pt-0">
-                        <div className="space-y-3">
-                          <p className="text-sm text-muted-foreground leading-relaxed">
-                            {idea.description}
-                          </p>
-                          
-                          {idea.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-1">
-                              {idea.tags.map((tag, index) => (
-                                <Badge key={index} variant="secondary" className="text-xs px-2 py-0.5">
-                                  <Tag className="h-3 w-3 mr-1" />
-                                  {tag}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
-                        </div>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          {idea.description}
+                        </p>
                       </CardContent>
                     </Card>
                   ))}
@@ -257,19 +262,9 @@ export function IdeaBankSidebar() {
             <div className="space-y-4">
               {/* Idea Summary */}
               <div className="p-4 rounded-lg bg-secondary/50">
-                <p className="text-sm text-muted-foreground mb-2">
+                <p className="text-sm text-muted-foreground">
                   {selectedIdea.description}
                 </p>
-                {selectedIdea.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {selectedIdea.tags.map((tag, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs px-2 py-0.5">
-                        <Tag className="h-3 w-3 mr-1" />
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
               </div>
 
               {/* Comments List */}
@@ -310,37 +305,57 @@ export function IdeaBankSidebar() {
                 </ScrollArea>
               </div>
 
-              {/* Add Comment */}
-              <div className="space-y-3">
-                <h4 className="text-sm font-medium">Add Comment</h4>
-                <div className="flex gap-2">
-                  <Textarea
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    placeholder="Write your thoughts about this idea..."
-                    rows={3}
-                    className="border-0 bg-secondary/50 focus:ring-2 focus:ring-primary/20"
-                  />
+              {/* Comment Added Success Message */}
+              {commentAdded && (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span className="text-sm text-green-600 dark:text-green-400 font-medium">Comment Added!</span>
                 </div>
-                <div className="flex justify-end">
-                  <Button
-                    onClick={() => addComment(selectedIdea.id)}
-                    disabled={!newComment.trim()}
-                    size="sm"
-                    className="shadow-glow hover:shadow-glow transition-all duration-300"
-                  >
-                    <Send className="mr-2 h-4 w-4" />
-                    Add Comment
-                  </Button>
+              )}
+
+              {/* Add Comment */}
+              <div className="space-y-4">
+                <h4 className="text-sm font-medium">Add Comment</h4>
+                <Textarea
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Write your thoughts about this idea..."
+                  rows={3}
+                  className="border-0 bg-secondary/50 focus:ring-2 focus:ring-primary/20 resize-none"
+                />
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">
+                    {newComment.length}/500 characters
+                  </span>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => addComment(selectedIdea.id)}
+                      disabled={!newComment.trim() || newComment.length > 500}
+                      size="sm"
+                      className="shadow-glow hover:shadow-glow transition-all duration-300 min-w-[120px]"
+                    >
+                      <Send className="mr-2 h-4 w-4" />
+                      Add Comment
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={closeCommentDialog}
+                      size="sm"
+                      className="min-w-[80px]"
+                    >
+                      Close
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
           )}
           
-          <DialogFooter>
-            <Button variant="outline" onClick={closeCommentDialog}>
-              Close
-            </Button>
+          <DialogFooter className="flex justify-center sm:justify-center">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <MessageCircle className="h-3 w-3" />
+              {selectedIdea?.comments?.length || 0} comment{(selectedIdea?.comments?.length || 0) !== 1 ? 's' : ''}
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
