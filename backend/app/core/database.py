@@ -5,10 +5,12 @@ from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from datetime import datetime
 import uuid
 import os
+from .config import settings
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://promptify:password@localhost:5432/promptify")
+# Debug: Print the DATABASE_URL to identify the issue
+print(f"DEBUG: Using DATABASE_URL = '{settings.DATABASE_URL}'")
 
-engine = create_engine(DATABASE_URL)
+engine = create_engine(settings.DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()

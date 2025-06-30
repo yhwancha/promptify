@@ -2,13 +2,33 @@ from pydantic_settings import BaseSettings
 from typing import Optional
 import os
 
+def clean_database_url(url: str) -> str:
+    """Clean DATABASE_URL by removing any prefixes that might be added by deployment platforms"""
+    if not url:
+        return url
+    
+    # Remove common prefixes that might be accidentally added
+    prefixes_to_remove = ["DATABASE_URL=", "database_url=", "POSTGRES_URL=", "postgres_url="]
+    
+    for prefix in prefixes_to_remove:
+        if url.startswith(prefix):
+            cleaned_url = url[len(prefix):]
+            print(f"DEBUG: Cleaned DATABASE_URL from '{url}' to '{cleaned_url}'")
+            return cleaned_url
+    
+    return url
+
 class Settings(BaseSettings):
     # API Settings
     API_V1_STR: str = "/api/v1"
     PROJECT_NAME: str = "Promptify API"
     
     # Database Settings
-    DATABASE_URL: Optional[str] = os.getenv("DATABASE_URL", "postgresql://user:password@localhost/promptify")
+    _raw_database_url: Optional[str] = os.getenv("DATABASE_URL", "postgresql://user:password@localhost/promptify")
+    
+    @property
+    def DATABASE_URL(self) -> Optional[str]:
+        return clean_database_url(self._raw_database_url) if self._raw_database_url else None
     
     # Security Settings
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key-here")
